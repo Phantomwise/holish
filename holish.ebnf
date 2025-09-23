@@ -1,0 +1,99 @@
+full_command               =  [io_flag] , [global_input_flag] , expr , [output_flag] ;
+expr                       =  operand_with_flag , [operator , operand_with_flag] ;
+operator                   =  ( "+" | "-" | "*" | "/" )
+
+operand_with_flag          =  operand , [operand_input_flag] ;
+operand                    =  (literal | internal_variable | shell_variable | command_output | ( "(" expr ")" ) ) ;
+
+(* Flags override chain:
+io_flag > global_input_flag > operand_input_flag
+io_flag > output_flag
+*)
+
+io_flag                    =  io_flag_prefix , io_flag_arg ;
+io_flag_prefix             =  ("-io " | "--input-output=") ;
+io_flag_arg                =  base ;
+(* Flag to set modes for all inputs and output *)
+(* Placed at the beginning, before the operands *)
+(* Equivalent to: global_input_flag + output_flag *)
+(* Overwrites: `output_flag`, `global_input_flag`, any `operand_input_flag` *)
+
+global_input_flag          =  global_input_flag_prefix , global_input_flag_arg ;
+global_input_flag_prefix   =  ("-ii " | "--global-input=") ;
+global_input_flag_arg      =  base ;
+(* Flag to set modes for all inputs *)
+(* Placed at the beginning, before the operands *)
+(* Overwritten by: `io_flag` *)
+(* Overwrites: `operand_input_flag` *)
+(* `-ii` is shorthand for repeating `-i` after each operand *)
+
+operand_input_flag         =  operand_input_flag_prefix , operand_input_flag_arg ;
+operand_input_flag_prefix  =  ("-i " | "--input=") ;
+operand_input_flag_arg     =  base ;
+(* Flag to set modes for the preceding input *)
+(* Placed just after the operand on which it applies *)
+(* Overwritten by: `io_flag`, `global_input_flag` *)
+
+output_flag                =  output_flag_prefix , output_flag_arg ;
+output_flag_prefix         =  ("-o " | "--output=") ;
+output_flag_arg            =  base ;
+(* Flag to set modes for the output *)
+(* Placed at the end *)
+(* Overwritten by: `io_flag` *)
+
+base                       =  (named_base|number_base) ;
+                           (* Can be either a named base or a base defined by number *)
+
+named_base                 =  ("bin"|"oct"|"dec"|"hex"|"asc"|"uni") ;
+                           (* bin = binary = base 2 *)
+                           (* oct = octal = base 8 *)
+                           (* dec = decimal = base 10 *)
+                           (* hex = hexadecimal = base 16 *)
+                           (* asc = ascii = base 128 *)
+                           (* uni = unicode = not implemented yet *)
+
+number_base                =  "b",natural_number ;
+                           (* The base number must be smaller than the number of Unicode characters excluding non-printing characters *)
+                           (* For now the base number must be a positive integer *)
+                           (* Not yet supported: negative integers, floats, floats <1, 0, irrational numbers *)
+                           (* TODO: Get revenge on maths by implementing base 0 *)
+
+natural_number             =  digit , {digit} ;
+
+float_number               =  digit , {digit} , [ float_symbol , digit , {digit} ] ;
+                           (* Unused for now *)
+float_symbol               =  ( "." | "," )
+
+digit                      =  ("0"|"1"|"2"|"3"|"4"|"5"|"6"|"7"|"8"|"9") ;
+
+symbol                     =  ("_"|"-"|".") ;
+
+letter                     =  (letter_lowercase | letter_uppercase) ;
+letter_lowercase           =  "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" | "u" | "v" | "w" | "x" | "y" | "z" ;
+letter_uppercase           =  "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+
+literal                    =  anything ;
+                           (* Whatever the user types directly *)
+
+anything                   = WIP ;
+                           (* No types, everything is text and parsed when needed *)
+                           (* No restrictions on which characters are allowed, even `+`, `$`, `{`, `}`, `\`, emoji, or weird Unicode symbols *)
+                           (* Must be quoted if it contains something more than letters, numbers and basic symbols *)
+                           (* The characters `\`, `"`, `'` inside literals must be escaped to `\\`, `\"` `\'`, *)
+                           (* Ideally no restrictions on length, you should be able to use the whole LFS book as long as you quote it and escape problematic characters. *)
+
+internal_variable          =  "@",internal_variable_name ;
+internal_variable_name     =  { letter | digit | symbol }+ ;
+
+shell_variable             =  "$",shell_variable_name ;
+shell_variable_name        =  { letter | digit | symbol }+ ;
+                           (* Get the value of a variable in the user's login shell, no matter what shell that is *)
+                           (* TODO: Change it to "any character except whitespace" so it supports non-POSIX shells. *)
+                           (* NB: Maybe wrap it in curly braces *)
+
+command_output             =  "$", "(" , command_string , ")"
+                           (* Command substitution *)
+                           (* Take the string inside `$(...)` and pass it to the user's login shell for execution. Then replace the `$(...)` expression by the output of the command. *)
+                           (* Shell agnostic —hopefully. Call the user's login shell rather than a fixed shell like bash, to allow the user to use their shell's syntax, variables, and functions. *)
+                           (* Do not sanitize or restrict the command. Allow users to be stupid. *)
+                           (* Implementation: Treat the command string as opaque text, spawn `$SHELL -c "<command_string>"`, capture stdout, and substitute it. *)
