@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-# Test implementation of the holish calculator
-# Proof of concept for the holish philosophy
+# Test implementation of the holixt calculator
+# Proof of concept for the holixt philosophy
 # It's my first time using python so it's probably crap
 
 # Colors definitions

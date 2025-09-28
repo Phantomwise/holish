@@ -2,7 +2,7 @@
 
 ## MANIFESTO
 
-Types are heresy and should not exist. Holy C is fundamentally wrong, God never worried about types when saying "Let there be light". Therefore bash is closer to God than C, and my language will be even holier, which is why I'm calling it holish.
+Types are heresy and should not exist. Holy C is fundamentally wrong, God never worried about types when saying "Let there be light". Therefore bash is closer to God than C, and my language will be even holier, which is why I'm calling it holixt.
 
 ## PHILOSOPHY
 
